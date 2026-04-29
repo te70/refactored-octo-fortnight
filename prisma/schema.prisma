@@ -1,0 +1,300 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CASHIER
+  RECEPTIONIST
+  SUPERVISOR
+  MANAGER
+  OWNER
+}
+
+enum Division {
+  HOTEL
+  BAR
+  LIQUOR_STORE
+  FAST_FOOD
+  CENTRAL_STORE
+}
+
+enum PaymentMethod {
+  CASH
+  MPESA
+}
+
+enum RoomStatus {
+  VACANT
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+}
+
+enum AlertSeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+enum AlertStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum StockMovementType {
+  OPEN
+  RECEIVED
+  SALE
+  WASTE
+  TRANSFER_OUT
+  TRANSFER_IN
+  ADJUSTMENT
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  pin          String    // bcrypt hashed
+  role         Role
+  division     Division?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  shifts       Shift[]
+  transactions Transaction[]
+  auditLogs    AuditLog[]
+  alerts       Alert[]   @relation("AssignedAlerts")
+}
+
+model Room {
+  id              String       @id @default(uuid())
+  roomNumber      String       @unique
+  type            String       // Single, Double, Suite
+  rateStandard    Decimal      @db.Decimal(10, 2)
+  rateWeekend     Decimal      @db.Decimal(10, 2)
+  rateEvent       Decimal      @db.Decimal(10, 2)
+  status          RoomStatus   @default(VACANT)
+  reservations    Reservation[]
+}
+
+model Reservation {
+  id             String    @id @default(uuid())
+  guestName      String
+  idNumber       String
+  room           Room      @relation(fields: [roomId], references: [id])
+  roomId         String
+  checkIn        DateTime
+  checkOut       DateTime
+  rateApplied    Decimal   @db.Decimal(10, 2)
+  totalAmount    Decimal   @db.Decimal(10, 2)
+  amountPaid     Decimal   @db.Decimal(10, 2)
+  balance        Decimal   @db.Decimal(10, 2)
+  status         String    // CHECKED_IN, CHECKED_OUT, RESERVED, NO_SHOW
+  transactions   Transaction[]
+  createdAt      DateTime  @default(now())
+}
+
+model Shift {
+  id            String    @id @default(uuid())
+  user          User      @relation(fields: [userId], references: [id])
+  userId        String
+  division      Division
+  openedAt      DateTime  @default(now())
+  closedAt      DateTime?
+  openingFloat  Decimal   @db.Decimal(10, 2)
+  closingCount  Decimal?  @db.Decimal(10, 2)
+  mpesaTotal    Decimal?  @db.Decimal(10, 2)
+  variance      Decimal?  @db.Decimal(10, 2)
+  transactions  Transaction[]
+}
+
+model Transaction {
+  id              String        @id @default(uuid())
+  division        Division
+  type            String        // SALE, VOID, REVERSAL, ROOM_CHECKIN, ROOM_CHECKOUT
+  amount          Decimal       @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod
+  mpesaRef        String?
+  isReversed      Boolean       @default(false)
+  reversalReason  String?
+  shift           Shift         @relation(fields: [shiftId], references: [id])
+  shiftId         String
+  user            User          @relation(fields: [userId], references: [id])
+  userId          String
+  reservation     Reservation?  @relation(fields: [reservationId], references: [id])
+  reservationId   String?
+  lineItems       LineItem[]
+  mpesaRecord     MpesaTransaction?
+  journalEntries  JournalEntry[]
+  createdAt       DateTime      @default(now())
+}
+
+model LineItem {
+  id            String      @id @default(uuid())
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  transactionId String
+  product       Product     @relation(fields: [productId], references: [id])
+  productId     String
+  quantity      Decimal     @db.Decimal(10, 3)
+  unitPrice     Decimal     @db.Decimal(10, 2)
+  lineTotal     Decimal     @db.Decimal(10, 2)
+}
+
+model Product {
+  id            String      @id @default(uuid())
+  name          String
+  sku           String      @unique
+  category      String
+  division      Division
+  unitPrice     Decimal     @db.Decimal(10, 2)
+  costPrice     Decimal     @db.Decimal(10, 2)
+  isActive      Boolean     @default(true)
+  lineItems     LineItem[]
+  stockItem     StockItem?  @relation(fields: [stockItemId], references: [id])
+  stockItemId   String?
+  recipes       Recipe[]
+}
+
+model StockItem {
+  id              String          @id @default(uuid())
+  name            String
+  sku             String          @unique
+  category        String
+  unit            String
+  costPrice       Decimal         @db.Decimal(10, 2)
+  reorderLevel    Decimal         @db.Decimal(10, 3)
+  division        Division
+  products        Product[]
+  movements       StockMovement[]
+  recipeUses      Recipe[]
+  grnLineItems    GrnLineItem[]
+}
+
+model StockMovement {
+  id            String            @id @default(uuid())
+  stockItem     StockItem         @relation(fields: [stockItemId], references: [id])
+  stockItemId   String
+  division      Division
+  movementType  StockMovementType
+  quantity      Decimal           @db.Decimal(10, 3)
+  referenceId   String?           // GRN id, Issue Note id, Transaction id
+  referenceType String?
+  notes         String?
+  createdBy     String
+  createdAt     DateTime          @default(now())
+}
+
+model Recipe {
+  id            String    @id @default(uuid())
+  product       Product   @relation(fields: [productId], references: [id])
+  productId     String
+  ingredient    StockItem @relation(fields: [ingredientId], references: [id])
+  ingredientId  String
+  quantity      Decimal   @db.Decimal(10, 4)
+}
+
+model Supplier {
+  id        String  @id @default(uuid())
+  name      String
+  category  String
+  contact   String?
+  email     String?
+  address   String?
+  grns      Grn[]
+}
+
+model Grn {
+  id             String        @id @default(uuid())
+  grnNumber      String        @unique
+  supplier       Supplier      @relation(fields: [supplierId], references: [id])
+  supplierId     String
+  invoiceRef     String?
+  deliveryDate   DateTime
+  totalValue     Decimal       @db.Decimal(10, 2)
+  receivedBy     String
+  approvedBy     String?
+  status         String        // PENDING, APPROVED, REJECTED
+  lineItems      GrnLineItem[]
+  createdAt      DateTime      @default(now())
+}
+
+model GrnLineItem {
+  id          String    @id @default(uuid())
+  grn         Grn       @relation(fields: [grnId], references: [id])
+  grnId       String
+  stockItem   StockItem @relation(fields: [stockItemId], references: [id])
+  stockItemId String
+  quantity    Decimal   @db.Decimal(10, 3)
+  unitCost    Decimal   @db.Decimal(10, 2)
+  lineTotal   Decimal   @db.Decimal(10, 2)
+}
+
+model StoreIssue {
+  id            String    @id @default(uuid())
+  issueNumber   String    @unique
+  fromDivision  Division
+  toDivision    Division
+  itemsJson     Json
+  issuedBy      String
+  receivedBy    String?
+  status        String    // PENDING, APPROVED, REJECTED, RECEIVED
+  createdAt     DateTime  @default(now())
+}
+
+model MpesaTransaction {
+  id                  String       @id @default(uuid())
+  transactionRef      String       @unique
+  amount              Decimal      @db.Decimal(10, 2)
+  msisdn              String
+  division            Division
+  timestamp           DateTime
+  status              String       // MATCHED, UNMATCHED, PENDING
+  transaction         Transaction? @relation(fields: [matchedTransactionId], references: [id])
+  matchedTransactionId String?     @unique
+  createdAt           DateTime     @default(now())
+}
+
+model JournalEntry {
+  id            String      @id @default(uuid())
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  transactionId String
+  accountCode   String
+  debit         Decimal     @db.Decimal(10, 2)
+  credit        Decimal     @db.Decimal(10, 2)
+  description   String?
+  createdAt     DateTime    @default(now())
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  action      String
+  tableName   String
+  recordId    String
+  beforeJson  Json?
+  afterJson   Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+}
+
+model Alert {
+  id              String        @id @default(uuid())
+  type            String
+  severity        AlertSeverity
+  division        Division
+  description     String
+  status          AlertStatus   @default(OPEN)
+  assignedTo      User?         @relation("AssignedAlerts", fields: [assignedToId], references: [id])
+  assignedToId    String?
+  investigationNote String?
+  resolutionNote  String?
+  raisedAt        DateTime      @default(now())
+  resolvedAt      DateTime?
+}
