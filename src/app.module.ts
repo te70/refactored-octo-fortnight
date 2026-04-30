@@ -7,9 +7,11 @@ import {AuthModule} from "./auth/auth.module";
 import { ShiftsModule } from './shifts/shifts.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import {ProductsModule} from "./products/products.module";
+import { MpesaModule } from './mpesa/mpesa.module'; 
+import { GrnStoreModule } from './grn/grn-store.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, }), PrismaModule, AuthModule, ShiftsModule, TransactionsModule, ProductsModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true, }), PrismaModule, AuthModule, ShiftsModule, TransactionsModule, ProductsModule, MpesaModule, GrnStoreModule],
   controllers: [AppController],
   providers: [AppService],
 })

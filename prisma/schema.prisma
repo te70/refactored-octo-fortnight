@@ -241,8 +241,11 @@ model StoreIssue {
   fromDivision  Division
   toDivision    Division
   itemsJson     Json
-  issuedBy      String
+  requestedBy   String
+  issuedBy      String?
+  issuedAt      DateTime?
   receivedBy    String?
+  notes         String?
   status        String    // PENDING, APPROVED, REJECTED, RECEIVED
   createdAt     DateTime  @default(now())
 }
