@@ -12,9 +12,10 @@ import { GrnStoreModule } from './grn/grn-store.module';
 import { ReportsModule } from './reports/reports.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { AuditModule } from './audit/audit.module';
+import { BiModule } from './bi/bi.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, }), PrismaModule, AuthModule, ShiftsModule, TransactionsModule, ProductsModule, MpesaModule, GrnStoreModule, ReportsModule, AlertsModule, AuditModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true, }), PrismaModule, AuthModule, ShiftsModule, TransactionsModule, ProductsModule, MpesaModule, GrnStoreModule, ReportsModule, AlertsModule, AuditModule, BiModule],
   controllers: [AppController],
   providers: [AppService],
 })
