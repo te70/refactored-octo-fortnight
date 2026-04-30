@@ -45,6 +45,8 @@ enum AlertSeverity {
 enum AlertStatus {
   OPEN
   IN_PROGRESS
+  INVESTIGATING
+  DISMISSED
   RESOLVED
 }
 
