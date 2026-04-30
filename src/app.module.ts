@@ -11,9 +11,10 @@ import { MpesaModule } from './mpesa/mpesa.module';
 import { GrnStoreModule } from './grn/grn-store.module';
 import { ReportsModule } from './reports/reports.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true, }), PrismaModule, AuthModule, ShiftsModule, TransactionsModule, ProductsModule, MpesaModule, GrnStoreModule, ReportsModule, AlertsModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true, }), PrismaModule, AuthModule, ShiftsModule, TransactionsModule, ProductsModule, MpesaModule, GrnStoreModule, ReportsModule, AlertsModule, AuditModule],
   controllers: [AppController],
   providers: [AppService],
 })
